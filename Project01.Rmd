@@ -52,9 +52,50 @@ nrow(NBOnly)
 ```
 One Questin we might want to consider could be how MYCN amplification effects survival.  When we looked at the structure, we saw that there is a column that has information about the vital status of the patient. We can make a separate dataframe with only the patients who who died and and compare the amount of patients that 
 ```{r}
-table(neuroblastoma$MYCN_status)
-dead<- filter(neuroblastoma, Vital_Status=="Dead")
-head(dead,25)
+amp<- filter(NBOnly, MYCN=="Amplified")
+nonamp<- filter(NBOnly, MYCN=="Not Amplified")
+head(amp)
+head(nonamp)
+```
+
+```{r}
+table(amp$Vital_Status)
+table(nonamp$Vital_Status)
+```
+
+```{r}
+dead<- filter(NBOnly, Vital_Status=="Dead")
+head(dead)
+DeadOrder<- arrange(dead, Overall_Survival_Time_in_Days)
+head(DeadOrder, 25)
+tail(DeadOrder, 25)
+```
+
+Is there a relationship between gender and days of survival??
+```{r}
+table(dead$Gender)
+alive<- filter(NBOnly, Vital_Status=="Alive")
+head(alive)
+table(alive$Gender)
+```
+
+
+
+Does the age at diagnosis correlate with the days of survival??
+```{r}
+summary(dead$Age_Diagnosis)
+summary(dead$Overall_Survival_Time_in_Days)
+dead<-arrange(dead, Age_Diagnosis)
+head(dead, 25)
+tail(dead, 25)
+```
+
+Do children <18 months at diagnosis have a higher survival rate than children 18+months at diagnosis? 
+```{r}
+Less18<-filter(NBOnly, Age_Diagnosis<550)
+table(Less18$Vital_Status)
+Greater18<-filter(NBOnly, Age_Diagnosis>=550)
+table(Greater18$Vital_Status)
 ```
 
 
