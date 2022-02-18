@@ -28,42 +28,66 @@ Examples could be one of the new core Biology classes, another 300-level course 
 
 You will work with the same groups as for the Homework 2 Peer review. 
 
-Our target audience is an upper level cancer biology class that has knowledge about R but isn't very experienced with using it.
+Our target audience is an upper level cancer biology class that has knowledge about R but isn't very experienced with using it. **Is this what we want to do?**
 
-Here we will explore the TARGET neuroblastoma data to gain insights about genetics and risk factor related to neuroblastoma.  Neuroblastoma is the most common extracranial solid cancer in children.  The 5 year survival rate has increased to ~50% with recent developments in immunotherapy and other novel treatments but this statistic begs the need for additional research and analysis.  One way to gain insights that might be translatable to the clinic is delving into patient data to uncover important patterns that might point towards ways to refine percision medicine approaches for neuroblastoma (Matthay, 2016).
+Here we will explore the TARGET neuroblastoma data to gain insights about genetics and risk factors related to neuroblastoma.  Neuroblastoma is the most common extracranial solid cancer in children.  The 5 year survival rate has increased to ~50% with recent developments in immunotherapy and other novel treatments but this statistic begs the need for additional research and analysis.  One way to gain insights that might be translatable to the clinic is delving into patient data to uncover important patterns that might point towards ways to refine precision medicine approaches for neuroblastoma (Matthay, 2016).
 
-MYCN is an important oncogene in neuroblastoma.  Focal amplification of MYCN is seen in some of the most aggressive cases and amplification marks 20-30% of total cases. 
+MYCN is an important oncogene in neuroblastoma.  Focal amplification of MYCN is seen in some of the most aggressive cases and amplification marks 20-30% of total cases. MYCN status is a binary response variable in this dataset that can be explored.  
 
 
 Here we read in the TARGET neuroblastoma data.  White space in the dataframe was removed using the "trim_ws" code.  You can first assess the success of the data import by looking at the first 6 rows of the dataframe using the "head()" function.  The structure of the dataframe was assessed using the "str()" function.  This informs us about the coding of each column and the contents of each column (e.g. there is a race indicating patient gender and the data is coded as a character).  
 ```{r loading in TARGET data}
-
 neuroblastoma <- read_csv("neuroblastoma.csv", trim_ws = TRUE)
 head(neuroblastoma)
 str(neuroblastoma)
-
 ```
-It's time to clean up the data.  Work in R is A LOT easier when you are working with a clean and filtered dataframe.  Once we have explored the data and decide what question are god questions to ask, we will remove irrelevant columns or filter by rows that include certain responses. For now, we see that there is a diagnosis category variable. We can use the "table()" function by specifying the data set and variable to see all recorded responses for diagnostic category.  The majority of the responses are for neuroblastoma, which is the diagnosis type we are interested in, while 157 patients had unknown or ganglioneuroblastoma diagnoses.  We will filter our dataset, creating a new one (NBOnly) that only includes neuroblastoma diagnoses.  We can check the success of the filter by using the head() function again and can make sure that the number of rows (using nrows()) matches the number of pateints that we found had that diagnsois when we applied the table() function. 463! That checks out.  
-```{r Filtering}
+It's time to clean up the data.  Work in R is A LOT easier when you are working with a clean and filtered dataframe.  Once we have explored the data and decide what question are good questions to ask, we will remove irrelevant columns or filter by rows that include certain responses. For now, we see that there is a diagnosis category variable. We can use the "table()" function by specifying the data set and variable to see all recorded responses for diagnostic category.  The majority of the responses are for neuroblastoma, which is the diagnosis type we are interested in, while 157 patients had unknown or ganglioneuroblastoma diagnoses.  We will filter our dataset, creating a new one (NBOnly) that only includes neuroblastoma diagnoses.  We can check the success of the filter by using the head() function again and can make sure that the number of rows (using nrows()) matches the number of pateints that we found had that diagnosis when we applied the table() function. 463! That checks out.  
+```{r Filtering Pt1}
 table(neuroblastoma$Diagnostic_Category)
 NBOnly<-filter(neuroblastoma, Diagnostic_Category=="Neuroblastoma")
 head(NBOnly)
 nrow(NBOnly)
 ```
-One Questin we might want to consider could be how MYCN amplification effects survival.  When we looked at the structure, we saw that there is a column that has information about the vital status of the patient. We can make a separate dataframe with only the patients who who died and and compare the amount of patients that 
-```{r}
+Upon looking att he different variables included in the TARGET data, there are several variables that we have identified as being useful for looking at several select questions about neuroblastoma. Here are a few that we will look further at:
+
+(1) Does MYCN amplification have a significant effect on the survival of neuroblastoma patients? **2 categorical so look at frequency and such**
+(2) Is the length of survival after diagnosis for patients that died significantly different when MYCN is amplified vs. non amplified (Is survival time less with MYCN amplification?)? **classic box plot T-Test type deal**
+(3) Is survival rate different across different genders? **If we are looking to cut down on questions this would be a good one to take out I think-- okay circling back to this I don't love this question-- I'll keep the code but won't write up about it. If you guys decide you'd want to keep this question lmk and I can add in something about it-- if not just delete the code and I'll remove the gender column from the filter**
+(4) For patients who died, does patient age at diagnosis correlate with the number of days they survived after diagnosis? **linear model, R^2, etc.**
+(5) Do patients above and below the median age of diagnosis (18 mo) have different survival rates? **probably same type of analysis as question 1-- could be good maybe if one if sign and one isnt so we could have varying examples but however it comes out is obviously good**
+
+Given those initial questions, the only variables in the dataframe we require for our continued analysis are: Gender, MYCN, Age_Diagnosis, Vital_status, Diagnostic_category, and Overall_survival_Time_in_Days.  We will remove the rest of the columns that are no longer relevant, and will keep the Target_USI for easy reference by other scientists if necessary.  
+```{r Removing Irrelevant Columns/Variables}
+NBOnly <- dplyr::select(NBOnly, c(Gender, MYCN, Age_Diagnosis, Vital_Status, Diagnostic_Category, Overall_Survival_Time_in_Days, TARGET_USI))
+head(NBOnly)
+str(NBOnly)
+```
+Using the structure function, we saw that some variables are coded as characters but would serve us better coded as factors.  The variables that have repeating responses--levels--and not all unique responses are the ones we would like to code as factors now.  For example, gender has two different possible responses: male and female-- there are two gender levels. We see this updated when we rerun the str() function 
+```{r Coding as Factor}
+NBOnly$Gender <- as.factor(NBOnly$Gender)
+NBOnly$Diagnostic_Category <- as.factor(NBOnly$Diagnostic_Category)
+NBOnly$Vital_Status <- as.factor(NBOnly$Vital_Status)
+NBOnly$MYCN <- as.factor(NBOnly$MYCN)
+str(NBOnly)
+```
+**(1) Does MYCN amplification have a significant effect on the survival of neuroblastoma patients? **
+
+Considering question 1, I would like to see information about the vital status of patients with MYCN amplification and patients without MYCN amplification separately.  Like was done before, I will use the filter() function to create subsets of the neuroblastoma dataframe to only include one genetic status or the other. We then validated that these codes were carried out correctly by scanning the head of each subset to ensure the MYCN variable only includes the specified MYCN status response.   
+```{r Question 1}
 amp<- filter(NBOnly, MYCN=="Amplified")
 nonamp<- filter(NBOnly, MYCN=="Not Amplified")
 head(amp)
 head(nonamp)
 ```
-
-```{r}
+In exploring this question, we then used the subsets for MYCN status to see how many patients had died are remained alive at the time of patient data collection. Looking at the frequency of death for each subset of MYCN status, we see preliminarily that more pateitns died than survived with who had MYCN amplification, and the reverse was true for MYCN nonamplified patients.    
+```{r Question 1 pt2}
 table(amp$Vital_Status)
 table(nonamp$Vital_Status)
 ```
+**(2) Is the length of survival after diagnosis for patients that died significantly different when MYCN is amplified vs. non amplified (Is survival time less with MYCN amplification?)?**
 
-```{r}
+Here we filtered the dataframe to only include patients that died.  In this question we will be assessing a putative relationship between MYCN amplification and the amount of days of survival after diagnosis to possibly gain insights about if the lethality of MYCN amplification has a more aggressive/ quicker than non amplified cases.  We excluded patients that were alive because the amount of days of survival after diagnosis is not an informative number for this question because the number of days would depend arbitrarily on when the data happened to be collected.  We ordered the number of days of survival for patients that had dead from lowest to highest and looked at the patients with the patients with the 25 shortest survival times and the 25 longest survival times. With this arrangement we were able to see that the top 25 shortest survival times had more patients that had MYCN amplification while the 25 longest survival times had more MYCN nonamplified patients.    
+```{r Question 2}
 dead<- filter(NBOnly, Vital_Status=="Dead")
 head(dead)
 DeadOrder<- arrange(dead, Overall_Survival_Time_in_Days)
@@ -71,27 +95,26 @@ head(DeadOrder, 25)
 tail(DeadOrder, 25)
 ```
 
-Is there a relationship between gender and days of survival??
-```{r}
+Is there a relationship between gender and days of survival?? WILL DECIDE IF WE WILL DELETE OR NOT
+```{r Question 3}
 table(dead$Gender)
 alive<- filter(NBOnly, Vital_Status=="Alive")
 head(alive)
 table(alive$Gender)
 ```
+**(4) For patients who died, does patient age at diagnosis correlate with the number of days they survived after diagnosis?**
 
-
-
-Does the age at diagnosis correlate with the days of survival??
-```{r}
-summary(dead$Age_Diagnosis)
+To get a quick sense of this question, we decided to look at the numerical summary for the distribution of days of survival after diagnosis for patients who died.  We saw that the mean was about 930 days.  So, we ordered the data from youngest patient diagnosed to oldest patient diagnoses.  From there, we looked at the youngest 25 patients diagnosed and the oldest 25 patients diagnosed and saw that for the younger patients, most of the survival times were below the 930 day average, and for the older patients, most had survival times above 930 days. This leads us to a further analysis as to if younger patients have significantly lower life expectancies after a neuroblastoma diagnosis.  
+```{r Question 4}
 summary(dead$Overall_Survival_Time_in_Days)
 dead<-arrange(dead, Age_Diagnosis)
 head(dead, 25)
 tail(dead, 25)
 ```
+**(5) Do patients above and below the median age of diagnosis (18 mo) have different survival rates?**
 
-Do children <18 months at diagnosis have a higher survival rate than children 18+months at diagnosis? 
-```{r}
+The median age of diagnosis for neuroblastoma is 18 months old (~550 days).  We want to explore whether being above or below the median age of diagnosis has a significant effect on survival rate.  We have created two subsets of the dataframe including all neuroblastoma patients-- one with patients diagnosed earleir than 18 months, and one including patients diagnosed later than 18 months.  We used the table function sorted for vital status to see how many patients in each group were alive or dead.  We first notice that the TARGET data has more patients diagnosed older than 18 mo which is inconsistent with the literature data and what we would expect from a random sample.  This should be noted and flagged for potential sampling biases. Despite this, we see that a higher percentage of patients who are under the 18 mo threshold survive (~92%) compared to a much lower percentage of patients above the 18 mo threshold that survive (~41%).     
+```{r Question 5}
 Less18<-filter(NBOnly, Age_Diagnosis<550)
 table(Less18$Vital_Status)
 Greater18<-filter(NBOnly, Age_Diagnosis>=550)
