@@ -11,6 +11,8 @@ date: 9 Feb 2022
 if (!require("datasauRus")) install.packages("datasauRus"); library(datasauRus)
 if (!require("tidyverse")) install.packages("tidyverse"); library(tidyverse)
 if (!require("cowplot")) install.packages("cowplot"); library(cowplot)
+if (!require("dplyr")) install.packages("dplyr"); library(dplyr)
+if (!require("UsingR")) install.packages("UsingR"); library(UsingR)
 ```
 
 This project will require you to develop a tutorial to teach Bucknell students how to use R for graphing and data analysis. 
@@ -24,7 +26,7 @@ Examples could be one of the new core Biology classes, another 300-level course 
 
 ```
 
-## Groups
+## Data Exploration
 
 You will work with the same groups as for the Homework 2 Peer review. 
 
@@ -59,6 +61,7 @@ Upon looking att he different variables included in the TARGET data, there are s
 Given those initial questions, the only variables in the dataframe we require for our continued analysis are: Gender, MYCN, Age_Diagnosis, Vital_status, Diagnostic_category, and Overall_survival_Time_in_Days.  We will remove the rest of the columns that are no longer relevant, and will keep the Target_USI for easy reference by other scientists if necessary.  
 ```{r Removing Irrelevant Columns/Variables}
 NBOnly <- dplyr::select(NBOnly, c(Gender, MYCN, Age_Diagnosis, Vital_Status, Diagnostic_Category, Overall_Survival_Time_in_Days, TARGET_USI))
+NBOnly <- as.data.frame(NBOnly) #Make it a data frame
 head(NBOnly)
 str(NBOnly)
 ```
@@ -75,7 +78,9 @@ str(NBOnly)
 Considering question 1, I would like to see information about the vital status of patients with MYCN amplification and patients without MYCN amplification separately.  Like was done before, I will use the filter() function to create subsets of the neuroblastoma dataframe to only include one genetic status or the other. We then validated that these codes were carried out correctly by scanning the head of each subset to ensure the MYCN variable only includes the specified MYCN status response.   
 ```{r Question 1}
 amp<- filter(NBOnly, MYCN=="Amplified")
+amp <- as.data.frame(amp) #Making amp subset of data it's own data frame
 nonamp<- filter(NBOnly, MYCN=="Not Amplified")
+nonamp <- as.data.frame(nonamp) #Making nonamp subset of data it's own data frame
 head(amp)
 head(nonamp)
 ```
@@ -84,6 +89,7 @@ In exploring this question, we then used the subsets for MYCN status to see how 
 table(amp$Vital_Status)
 table(nonamp$Vital_Status)
 ```
+
 **(2) Is the length of survival after diagnosis for patients that died significantly different when MYCN is amplified vs. non amplified (Is survival time less with MYCN amplification?)?**
 
 Here we filtered the dataframe to only include patients that died.  In this question we will be assessing a putative relationship between MYCN amplification and the amount of days of survival after diagnosis to possibly gain insights about if the lethality of MYCN amplification has a more aggressive/ quicker than non amplified cases.  We excluded patients that were alive because the amount of days of survival after diagnosis is not an informative number for this question because the number of days would depend arbitrarily on when the data happened to be collected.  We ordered the number of days of survival for patients that had dead from lowest to highest and looked at the patients with the patients with the 25 shortest survival times and the 25 longest survival times. With this arrangement we were able to see that the top 25 shortest survival times had more patients that had MYCN amplification while the 25 longest survival times had more MYCN nonamplified patients.    
@@ -116,10 +122,114 @@ tail(dead, 25)
 The median age of diagnosis for neuroblastoma is 18 months old (~550 days).  We want to explore whether being above or below the median age of diagnosis has a significant effect on survival rate.  We have created two subsets of the dataframe including all neuroblastoma patients-- one with patients diagnosed earleir than 18 months, and one including patients diagnosed later than 18 months.  We used the table function sorted for vital status to see how many patients in each group were alive or dead.  We first notice that the TARGET data has more patients diagnosed older than 18 mo which is inconsistent with the literature data and what we would expect from a random sample.  This should be noted and flagged for potential sampling biases. Despite this, we see that a higher percentage of patients who are under the 18 mo threshold survive (~92%) compared to a much lower percentage of patients above the 18 mo threshold that survive (~41%).     
 ```{r Question 5}
 Less18<-filter(NBOnly, Age_Diagnosis<550)
-table(Less18$Vital_Status)
+Less18 <- as.data.frame(Less18) #Make data frame
+table(Less18$Vital_Status) 
 Greater18<-filter(NBOnly, Age_Diagnosis>=550)
 table(Greater18$Vital_Status)
+Greater18 <- as.data.frame(Greater18) #Make data frame
 ```
+
+## Data Visualization
+
+Now that we have explored and filtered the data, we should visualize the data before testing our hypotheses.
+
+**(1) Does MYCN amplification have a significant effect on the survival of neuroblastoma patients? **
+
+To visualize how MYCN amplification relates to survival of neuroblastoma patients, we can make a barplot to compare the two groups using ggplot().
+
+Within ggplot(), you first indicate the data frame you are pulling information from. It then takes the argument aes(x=,y=) where you add your x and y variables and geom_bar() to indicate you want your data to be displayed as a bar graph. We also want to add stat="identity" so the bar graph gives us counts of Alive vs Dead patients within each group. Within the aes(), we can also add "fill=Vital_Status" so each bar in our graph has a different color to indicate dead vs alive patients.
+
+We can also add ggtitle() to give our plot a title and xlab() and ylab() to label the x and y axes (although we don't need to relable the x-axis in this case). In addition, we have added the function theme_cowplot() that we can add to all of our plots to give them a consistent and clean theme.
+```{r Question 1 Plot}
+ggplot(data=NBOnly, #Identify the data frame 
+       aes(x=MYCN,y = Vital_Status, fill=Vital_Status)) + #Identify variables and fill=Vital_Status 
+  geom_bar(stat = "identity") + #Indicating we want the bar graph to show the vital status counts
+  ggtitle("The effect of amplification on survival") + #Title
+  ylab("Vital Status") + #Y-axis names 
+  theme_cowplot()
+```
+As we saw from the table, the proportion of Dead to Alive patients is higher in patients with amplified MYCN. We also have a category of patients who were included in the study, but data on their MYCN is unknown. As you can see from the graph, the number of these patients is very small.
+
+**The y-axis is weird because of the Unkown bar and idk how to get rid of it/ if we need to get rid of it because we have the key that makes it clear to read**
+
+
+**(2) Is the length of survival after diagnosis for patients that died significantly different when MYCN is amplified vs. non amplified (Is survival time less with MYCN amplification?)?**
+
+To visualize the relationship between MYCN amplification (a categorical variable) and length of survival (numerical variable), we can create a box plot using the function ggplot().
+First we can create a basic boxplot. 
+
+```{r Question 2 Basic Plot}
+basic_plot <- ggplot(NBOnly) + #Tell ggplot what data frame you are working in
+  aes(x =MYCN , y=Overall_Survival_Time_in_Days) + #Add x and y variables
+  geom_boxplot() #Let ggplot know you want to create a boxplot
+basic_plot
+```
+As a reminder, the dark line in the middle of the box represents the median value while the entire box represents the middle 50% of the data. The whiskers represent the minimum and maximum values. Even though we can make this plot even better, we can see from this basic plot that patients with Not Amplified MYCN have a higher median survival time than patients with Amplified MYCN.
+
+To make our plot even better, we can add all of our data points to the plot. It is always better to add your data to a plot because it is more transparent. We can add the function geom_jitter() to plot our data on the plot. You can make the width of the points whatever you want and we can also add the argument "alpha=" to make the points more transparent so we can see the boxplot behind all the data points. 
+
+We also added axis names and titles again.
+```{r Question 2 Advanced Boxplot}
+survival_plot <- ggplot(NBOnly) +
+  aes(x =MYCN , y=Overall_Survival_Time_in_Days) +
+  geom_boxplot() +
+  geom_jitter(width=.2, alpha=0.5) + #Adding our data points
+  theme_cowplot() + #Adding cowplot theme
+  ggtitle("MYCN Amplification Effect on Survival") +  #Title
+  xlab("MYCN Amplification") + #x-axis title
+  ylab("Overall Survival Time (days)") #y-axis title
+survival_plot
+```
+In addition to seeing that the Not Amplified median survival length is higher than Amplified median survival length, adding the data points allows us to see that we have more observations in the Not Amplified category than the Amplified category. We can also see that there are very few Unknown observations.
+
+**(4) For patients who died, does patient age at diagnosis correlate with the number of days they survived after diagnosis?**
+Since both variables in this question are numerical, we can create a linear model to visualize the relationship between age at diagnosis and length of survival after diagnosis again using ggplot().
+
+We can use geom_point(position = "jitter", size=) to build a scatterplot of our two variables. 
+We can also use the function scale_x_continuous(breaks = seq.into()) to define the length of our x-axis. The argument seq.into() requires 3 numbers. The first two numbers should correlate to the min and max value while the last number indicates the intervals you want. For example, we put 0,8000,1000 in the code below, which says we want the x-axis to go from 0 - 8000 in intervals of 1000. 
+The function geom_smooth(method='lm',se=FALSE) adds a linear regression to our plot.
+
+```{r Question 4 Plot}
+ggplot(data=NBOnly, aes(x = Age_Diagnosis, y = Overall_Survival_Time_in_Days)) +
+  geom_point(position = "jitter",size=0.05) + #Scatterplot
+  scale_x_continuous(breaks = seq.int(0, 8000, 1000)) + #x-axis length
+  geom_smooth(method='lm',se=FALSE) + #linear regression
+  ggtitle('Age at Diagnosis and Survival Length') +
+  xlab("Age at Diagnosis (days)") +
+  ylab("Overall Survival Time (days)") +
+  theme_cowplot()
+```
+
+As we can see, survival length appears to decline as age at diagnosis increases, but the relationship does not appear strong. We can explore if a linear model fits the data later, when we do our hypothesis testing.
+
+**(5) Do patients above and below the median age of diagnosis (18 mo) have different survival rates?**
+
+To visualize the different survival rates between patients diagnosed above and below the median age of diagnosis, we can make bar graphs like we did to answer the first question. We can use the two data frames we created "Less18" and "Greater18" to make two bar graphs. 
+
+We can also use the function plot_grid() so that the ouput of the graphs show up together.
+```{r Question 5 Plot}
+#Plot for patients diagnosed below the median age
+a <- ggplot(data=Less18, #Identify the data frame 
+       aes(x=Age_Diagnosis,y = Vital_Status, fill=Vital_Status)) + #Identify variables and fill=Vital_Status 
+  geom_bar(stat = "identity") + #Indicating we want the bar graph to show the vital status counts
+  ggtitle("Vital status of patients diagnosed below the median age ") + #Title
+  ylab("Vital Status") + 
+  xlab("Age at Diagnosis") +
+  theme_cowplot()
+
+#Plot for patients diagnosed after the median age
+b <- ggplot(data=Greater18, #Identify the data frame 
+       aes(x=Age_Diagnosis,y = Vital_Status, fill=Vital_Status)) + #Identify variables and fill=Vital_Status 
+  geom_bar(stat = "identity") + #Indicating we want the bar graph to show the vital status counts
+  ggtitle("Vital status of patients diagnosed above the median age ") + #Title
+  ylab("Vital Status") + 
+  xlab("Age at Diagnosis") +
+  theme_cowplot()
+
+#Combining plots
+plot_grid(a,b,nrow=2) #Indicate what plots to show and nrow= to show how many rows you want them in (could also use ncol= to indicate column numbers as well)
+```
+As we saw from the table, most of the patients diagnosed below the median age are alive while most of the patients diagnosed after the median age are dead.
 
 
 ## Grading
