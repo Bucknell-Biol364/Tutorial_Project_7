@@ -28,12 +28,35 @@ Examples could be one of the new core Biology classes, another 300-level course 
 
 You will work with the same groups as for the Homework 2 Peer review. 
 
-```{r}
-PeerGroups1 <- read_csv("../Homework3/neuroblastoma.csv")
-PeerGroups1 %>% 
-  select(-MAJR, -CLAS, ) %>%
-  print()
+Our target audience is an upper level cancer biology class that has knowledge about R but isn't very experienced with using it.
+
+Here we will explore the TARGET neuroblastoma data to gain insights about genetics and risk factor related to neuroblastoma.  Neuroblastoma is the most common extracranial solid cancer in children.  The 5 year survival rate has increased to ~50% with recent developments in immunotherapy and other novel treatments but this statistic begs the need for additional research and analysis.  One way to gain insights that might be translatable to the clinic is delving into patient data to uncover important patterns that might point towards ways to refine percision medicine approaches for neuroblastoma (Matthay, 2016).
+
+MYCN is an important oncogene in neuroblastoma.  Focal amplification of MYCN is seen in some of the most aggressive cases and amplification marks 20-30% of total cases. 
+
+
+Here we read in the TARGET neuroblastoma data.  White space in the dataframe was removed using the "trim_ws" code.  You can first assess the success of the data import by looking at the first 6 rows of the dataframe using the "head()" function.  The structure of the dataframe was assessed using the "str()" function.  This informs us about the coding of each column and the contents of each column (e.g. there is a race indicating patient gender and the data is coded as a character).  
+```{r loading in TARGET data}
+
+neuroblastoma <- read_csv("neuroblastoma.csv", trim_ws = TRUE)
+head(neuroblastoma)
+str(neuroblastoma)
+
 ```
+It's time to clean up the data.  Work in R is A LOT easier when you are working with a clean and filtered dataframe.  Once we have explored the data and decide what question are god questions to ask, we will remove irrelevant columns or filter by rows that include certain responses. For now, we see that there is a diagnosis category variable. We can use the "table()" function by specifying the data set and variable to see all recorded responses for diagnostic category.  The majority of the responses are for neuroblastoma, which is the diagnosis type we are interested in, while 157 patients had unknown or ganglioneuroblastoma diagnoses.  We will filter our dataset, creating a new one (NBOnly) that only includes neuroblastoma diagnoses.  We can check the success of the filter by using the head() function again and can make sure that the number of rows (using nrows()) matches the number of pateints that we found had that diagnsois when we applied the table() function. 463! That checks out.  
+```{r Filtering}
+table(neuroblastoma$Diagnostic_Category)
+NBOnly<-filter(neuroblastoma, Diagnostic_Category=="Neuroblastoma")
+head(NBOnly)
+nrow(NBOnly)
+```
+One Questin we might want to consider could be how MYCN amplification effects survival.  When we looked at the structure, we saw that there is a column that has information about the vital status of the patient. We can make a separate dataframe with only the patients who who died and and compare the amount of patients that 
+```{r}
+table(neuroblastoma$MYCN_status)
+dead<- filter(neuroblastoma, Vital_Status=="Dead")
+head(dead,25)
+```
+
 
 ## Grading
 
