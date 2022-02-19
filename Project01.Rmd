@@ -1,5 +1,5 @@
 ---
-title: "Group Project 1"
+title: "Group Project 7-- Jayne, Olivia, Sarah"
 subtitle: "Biology 368/664 Bucknell University"
 output: html_notebook
 author: Prof. Ken Field
@@ -10,6 +10,9 @@ date: 9 Feb 2022
 # Load other packages here.
 if (!require("datasauRus")) install.packages("datasauRus"); library(datasauRus)
 if (!require("tidyverse")) install.packages("tidyverse"); library(tidyverse)
+if (!require("cowplot")) install.packages("cowplot"); library(cowplot)
+if (!require("dplyr")) install.packages("dplyr"); library(dplyr)
+if (!require("UsingR")) install.packages("UsingR"); library(UsingR)
 ```
 
 This project will require you to develop a tutorial to teach Bucknell students how to use R for graphing and data analysis. 
@@ -23,16 +26,211 @@ Examples could be one of the new core Biology classes, another 300-level course 
 
 ```
 
-## Groups
+## Data Exploration
 
 You will work with the same groups as for the Homework 2 Peer review. 
 
-```{r}
-PeerGroups1 <- read_csv("../00-Syllabus/PeerGroups1.csv")
-PeerGroups1 %>% 
-  select(-MAJR, -CLAS, ) %>%
-  print()
+Our target audience is an upper level cancer biology class that has knowledge about R but isn't very experienced with using it. **Is this what we want to do?**
+
+Here we will explore the TARGET neuroblastoma data to gain insights about genetics and risk factors related to neuroblastoma.  Neuroblastoma is the most common extracranial solid cancer in children.  The 5 year survival rate has increased to ~50% with recent developments in immunotherapy and other novel treatments but this statistic begs the need for additional research and analysis.  One way to gain insights that might be translatable to the clinic is delving into patient data to uncover important patterns that might point towards ways to refine precision medicine approaches for neuroblastoma (Matthay, 2016).
+
+MYCN is an important oncogene in neuroblastoma.  Focal amplification of MYCN is seen in some of the most aggressive cases and amplification marks 20-30% of total cases. MYCN status is a binary response variable in this dataset that can be explored.  
+
+
+Here we read in the TARGET neuroblastoma data.  White space in the dataframe was removed using the "trim_ws" code.  You can first assess the success of the data import by looking at the first 6 rows of the dataframe using the "head()" function.  The structure of the dataframe was assessed using the "str()" function.  This informs us about the coding of each column and the contents of each column (e.g. there is a race indicating patient gender and the data is coded as a character).  
+```{r loading in TARGET data}
+neuroblastoma <- read_csv("neuroblastoma.csv", trim_ws = TRUE)
+head(neuroblastoma)
+str(neuroblastoma)
 ```
+It's time to clean up the data.  Work in R is A LOT easier when you are working with a clean and filtered dataframe.  Once we have explored the data and decide what question are good questions to ask, we will remove irrelevant columns or filter by rows that include certain responses. For now, we see that there is a diagnosis category variable. We can use the "table()" function by specifying the data set and variable to see all recorded responses for diagnostic category.  The majority of the responses are for neuroblastoma, which is the diagnosis type we are interested in, while 157 patients had unknown or ganglioneuroblastoma diagnoses.  We will filter our dataset, creating a new one (NBOnly) that only includes neuroblastoma diagnoses.  We can check the success of the filter by using the head() function again and can make sure that the number of rows (using nrows()) matches the number of pateints that we found had that diagnosis when we applied the table() function. 463! That checks out.  
+```{r Filtering Pt1}
+table(neuroblastoma$Diagnostic_Category)
+NBOnly<-filter(neuroblastoma, Diagnostic_Category=="Neuroblastoma")
+head(NBOnly)
+nrow(NBOnly)
+```
+Upon looking att he different variables included in the TARGET data, there are several variables that we have identified as being useful for looking at several select questions about neuroblastoma. Here are a few that we will look further at:
+
+(1) Does MYCN amplification have a significant effect on the survival of neuroblastoma patients? **2 categorical so look at frequency and such**
+(2) Is the length of survival after diagnosis for patients that died significantly different when MYCN is amplified vs. non amplified (Is survival time less with MYCN amplification?)? **classic box plot T-Test type deal**
+(3) Is survival rate different across different genders? **If we are looking to cut down on questions this would be a good one to take out I think-- okay circling back to this I don't love this question-- I'll keep the code but won't write up about it. If you guys decide you'd want to keep this question lmk and I can add in something about it-- if not just delete the code and I'll remove the gender column from the filter**
+(4) For patients who died, does patient age at diagnosis correlate with the number of days they survived after diagnosis? **linear model, R^2, etc.**
+(5) Do patients above and below the median age of diagnosis (18 mo) have different survival rates? **probably same type of analysis as question 1-- could be good maybe if one if sign and one isnt so we could have varying examples but however it comes out is obviously good**
+
+Given those initial questions, the only variables in the dataframe we require for our continued analysis are: Gender, MYCN, Age_Diagnosis, Vital_status, Diagnostic_category, and Overall_survival_Time_in_Days.  We will remove the rest of the columns that are no longer relevant, and will keep the Target_USI for easy reference by other scientists if necessary.  
+```{r Removing Irrelevant Columns/Variables}
+NBOnly <- dplyr::select(NBOnly, c(Gender, MYCN, Age_Diagnosis, Vital_Status, Diagnostic_Category, Overall_Survival_Time_in_Days, TARGET_USI))
+NBOnly <- as.data.frame(NBOnly) #Make it a data frame
+head(NBOnly)
+str(NBOnly)
+```
+Using the structure function, we saw that some variables are coded as characters but would serve us better coded as factors.  The variables that have repeating responses--levels--and not all unique responses are the ones we would like to code as factors now.  For example, gender has two different possible responses: male and female-- there are two gender levels. We see this updated when we rerun the str() function 
+```{r Coding as Factor}
+NBOnly$Gender <- as.factor(NBOnly$Gender)
+NBOnly$Diagnostic_Category <- as.factor(NBOnly$Diagnostic_Category)
+NBOnly$Vital_Status <- as.factor(NBOnly$Vital_Status)
+NBOnly$MYCN <- as.factor(NBOnly$MYCN)
+str(NBOnly)
+```
+**(1) Does MYCN amplification have a significant effect on the survival of neuroblastoma patients? **
+
+Considering question 1, I would like to see information about the vital status of patients with MYCN amplification and patients without MYCN amplification separately.  Like was done before, I will use the filter() function to create subsets of the neuroblastoma dataframe to only include one genetic status or the other. We then validated that these codes were carried out correctly by scanning the head of each subset to ensure the MYCN variable only includes the specified MYCN status response.   
+```{r Question 1}
+amp<- filter(NBOnly, MYCN=="Amplified")
+amp <- as.data.frame(amp) #Making amp subset of data it's own data frame
+nonamp<- filter(NBOnly, MYCN=="Not Amplified")
+nonamp <- as.data.frame(nonamp) #Making nonamp subset of data it's own data frame
+head(amp)
+head(nonamp)
+```
+In exploring this question, we then used the subsets for MYCN status to see how many patients had died are remained alive at the time of patient data collection. Looking at the frequency of death for each subset of MYCN status, we see preliminarily that more pateitns died than survived with who had MYCN amplification, and the reverse was true for MYCN nonamplified patients.    
+```{r Question 1 pt2}
+table(amp$Vital_Status)
+table(nonamp$Vital_Status)
+```
+
+**(2) Is the length of survival after diagnosis for patients that died significantly different when MYCN is amplified vs. non amplified (Is survival time less with MYCN amplification?)?**
+
+Here we filtered the dataframe to only include patients that died.  In this question we will be assessing a putative relationship between MYCN amplification and the amount of days of survival after diagnosis to possibly gain insights about if the lethality of MYCN amplification has a more aggressive/ quicker than non amplified cases.  We excluded patients that were alive because the amount of days of survival after diagnosis is not an informative number for this question because the number of days would depend arbitrarily on when the data happened to be collected.  We ordered the number of days of survival for patients that had dead from lowest to highest and looked at the patients with the patients with the 25 shortest survival times and the 25 longest survival times. With this arrangement we were able to see that the top 25 shortest survival times had more patients that had MYCN amplification while the 25 longest survival times had more MYCN nonamplified patients.    
+```{r Question 2}
+dead<- filter(NBOnly, Vital_Status=="Dead")
+head(dead)
+DeadOrder<- arrange(dead, Overall_Survival_Time_in_Days)
+head(DeadOrder, 25)
+tail(DeadOrder, 25)
+```
+
+Is there a relationship between gender and days of survival?? WILL DECIDE IF WE WILL DELETE OR NOT
+```{r Question 3}
+table(dead$Gender)
+alive<- filter(NBOnly, Vital_Status=="Alive")
+head(alive)
+table(alive$Gender)
+```
+**(4) For patients who died, does patient age at diagnosis correlate with the number of days they survived after diagnosis?**
+
+To get a quick sense of this question, we decided to look at the numerical summary for the distribution of days of survival after diagnosis for patients who died.  We saw that the mean was about 930 days.  So, we ordered the data from youngest patient diagnosed to oldest patient diagnoses.  From there, we looked at the youngest 25 patients diagnosed and the oldest 25 patients diagnosed and saw that for the younger patients, most of the survival times were below the 930 day average, and for the older patients, most had survival times above 930 days. This leads us to a further analysis as to if younger patients have significantly lower life expectancies after a neuroblastoma diagnosis.  
+```{r Question 4}
+summary(dead$Overall_Survival_Time_in_Days)
+dead<-arrange(dead, Age_Diagnosis)
+head(dead, 25)
+tail(dead, 25)
+```
+**(5) Do patients above and below the median age of diagnosis (18 mo) have different survival rates?**
+
+The median age of diagnosis for neuroblastoma is 18 months old (~550 days).  We want to explore whether being above or below the median age of diagnosis has a significant effect on survival rate.  We have created two subsets of the dataframe including all neuroblastoma patients-- one with patients diagnosed earleir than 18 months, and one including patients diagnosed later than 18 months.  We used the table function sorted for vital status to see how many patients in each group were alive or dead.  We first notice that the TARGET data has more patients diagnosed older than 18 mo which is inconsistent with the literature data and what we would expect from a random sample.  This should be noted and flagged for potential sampling biases. Despite this, we see that a higher percentage of patients who are under the 18 mo threshold survive (~92%) compared to a much lower percentage of patients above the 18 mo threshold that survive (~41%).     
+```{r Question 5}
+Less18<-filter(NBOnly, Age_Diagnosis<550)
+Less18 <- as.data.frame(Less18) #Make data frame
+table(Less18$Vital_Status) 
+Greater18<-filter(NBOnly, Age_Diagnosis>=550)
+table(Greater18$Vital_Status)
+Greater18 <- as.data.frame(Greater18) #Make data frame
+```
+
+## Data Visualization
+
+Now that we have explored and filtered the data, we should visualize the data before testing our hypotheses.
+
+**(1) Does MYCN amplification have a significant effect on the survival of neuroblastoma patients? **
+
+To visualize how MYCN amplification relates to survival of neuroblastoma patients, we can make a barplot to compare the two groups using ggplot().
+
+Within ggplot(), you first indicate the data frame you are pulling information from. It then takes the argument aes(x=,y=) where you add your x and y variables and geom_bar() to indicate you want your data to be displayed as a bar graph. We also want to add stat="identity" so the bar graph gives us counts of Alive vs Dead patients within each group. Within the aes(), we can also add "fill=Vital_Status" so each bar in our graph has a different color to indicate dead vs alive patients.
+
+We can also add ggtitle() to give our plot a title and xlab() and ylab() to label the x and y axes (although we don't need to relable the x-axis in this case). In addition, we have added the function theme_cowplot() that we can add to all of our plots to give them a consistent and clean theme.
+```{r Question 1 Plot}
+ggplot(data=NBOnly, #Identify the data frame 
+       aes(x=MYCN,y = Vital_Status, fill=Vital_Status)) + #Identify variables and fill=Vital_Status 
+  geom_bar(stat = "identity") + #Indicating we want the bar graph to show the vital status counts
+  ggtitle("The effect of amplification on survival") + #Title
+  ylab("Vital Status") + #Y-axis names 
+  theme_cowplot()
+```
+As we saw from the table, the proportion of Dead to Alive patients is higher in patients with amplified MYCN. We also have a category of patients who were included in the study, but data on their MYCN is unknown. As you can see from the graph, the number of these patients is very small.
+
+**The y-axis is weird because of the Unkown bar and idk how to get rid of it/ if we need to get rid of it because we have the key that makes it clear to read**
+
+
+**(2) Is the length of survival after diagnosis for patients that died significantly different when MYCN is amplified vs. non amplified (Is survival time less with MYCN amplification?)?**
+
+To visualize the relationship between MYCN amplification (a categorical variable) and length of survival (numerical variable), we can create a box plot using the function ggplot().
+First we can create a basic boxplot. 
+
+```{r Question 2 Basic Plot}
+basic_plot <- ggplot(NBOnly) + #Tell ggplot what data frame you are working in
+  aes(x =MYCN , y=Overall_Survival_Time_in_Days) + #Add x and y variables
+  geom_boxplot() #Let ggplot know you want to create a boxplot
+basic_plot
+```
+As a reminder, the dark line in the middle of the box represents the median value while the entire box represents the middle 50% of the data. The whiskers represent the minimum and maximum values. Even though we can make this plot even better, we can see from this basic plot that patients with Not Amplified MYCN have a higher median survival time than patients with Amplified MYCN.
+
+To make our plot even better, we can add all of our data points to the plot. It is always better to add your data to a plot because it is more transparent. We can add the function geom_jitter() to plot our data on the plot. You can make the width of the points whatever you want and we can also add the argument "alpha=" to make the points more transparent so we can see the boxplot behind all the data points. 
+
+We also added axis names and titles again.
+```{r Question 2 Advanced Boxplot}
+survival_plot <- ggplot(NBOnly) +
+  aes(x =MYCN , y=Overall_Survival_Time_in_Days) +
+  geom_boxplot() +
+  geom_jitter(width=.2, alpha=0.5) + #Adding our data points
+  theme_cowplot() + #Adding cowplot theme
+  ggtitle("MYCN Amplification Effect on Survival") +  #Title
+  xlab("MYCN Amplification") + #x-axis title
+  ylab("Overall Survival Time (days)") #y-axis title
+survival_plot
+```
+In addition to seeing that the Not Amplified median survival length is higher than Amplified median survival length, adding the data points allows us to see that we have more observations in the Not Amplified category than the Amplified category. We can also see that there are very few Unknown observations.
+
+**(4) For patients who died, does patient age at diagnosis correlate with the number of days they survived after diagnosis?**
+Since both variables in this question are numerical, we can create a linear model to visualize the relationship between age at diagnosis and length of survival after diagnosis again using ggplot().
+
+We can use geom_point(position = "jitter", size=) to build a scatterplot of our two variables. 
+We can also use the function scale_x_continuous(breaks = seq.into()) to define the length of our x-axis. The argument seq.into() requires 3 numbers. The first two numbers should correlate to the min and max value while the last number indicates the intervals you want. For example, we put 0,8000,1000 in the code below, which says we want the x-axis to go from 0 - 8000 in intervals of 1000. 
+The function geom_smooth(method='lm',se=FALSE) adds a linear regression to our plot.
+
+```{r Question 4 Plot}
+ggplot(data=NBOnly, aes(x = Age_Diagnosis, y = Overall_Survival_Time_in_Days)) +
+  geom_point(position = "jitter",size=0.05) + #Scatterplot
+  scale_x_continuous(breaks = seq.int(0, 8000, 1000)) + #x-axis length
+  geom_smooth(method='lm',se=FALSE) + #linear regression
+  ggtitle('Age at Diagnosis and Survival Length') +
+  xlab("Age at Diagnosis (days)") +
+  ylab("Overall Survival Time (days)") +
+  theme_cowplot()
+```
+
+As we can see, survival length appears to decline as age at diagnosis increases, but the relationship does not appear strong. We can explore if a linear model fits the data later, when we do our hypothesis testing.
+
+**(5) Do patients above and below the median age of diagnosis (18 mo) have different survival rates?**
+
+To visualize the different survival rates between patients diagnosed above and below the median age of diagnosis, we can make bar graphs like we did to answer the first question. We can use the two data frames we created "Less18" and "Greater18" to make two bar graphs. 
+
+We can also use the function plot_grid() so that the ouput of the graphs show up together.
+```{r Question 5 Plot}
+#Plot for patients diagnosed below the median age
+a <- ggplot(data=Less18, #Identify the data frame 
+       aes(x=Age_Diagnosis,y = Vital_Status, fill=Vital_Status)) + #Identify variables and fill=Vital_Status 
+  geom_bar(stat = "identity") + #Indicating we want the bar graph to show the vital status counts
+  ggtitle("Vital status of patients diagnosed below the median age ") + #Title
+  ylab("Vital Status") + 
+  xlab("Age at Diagnosis") +
+  theme_cowplot()
+
+#Plot for patients diagnosed after the median age
+b <- ggplot(data=Greater18, #Identify the data frame 
+       aes(x=Age_Diagnosis,y = Vital_Status, fill=Vital_Status)) + #Identify variables and fill=Vital_Status 
+  geom_bar(stat = "identity") + #Indicating we want the bar graph to show the vital status counts
+  ggtitle("Vital status of patients diagnosed above the median age ") + #Title
+  ylab("Vital Status") + 
+  xlab("Age at Diagnosis") +
+  theme_cowplot()
+
+#Combining plots
+plot_grid(a,b,nrow=2) #Indicate what plots to show and nrow= to show how many rows you want them in (could also use ncol= to indicate column numbers as well)
+```
+As we saw from the table, most of the patients diagnosed below the median age are alive while most of the patients diagnosed after the median age are dead.
+
 
 ## Grading
 
