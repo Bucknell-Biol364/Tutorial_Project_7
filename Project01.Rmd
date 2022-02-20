@@ -231,6 +231,62 @@ plot_grid(a,b,nrow=2) #Indicate what plots to show and nrow= to show how many ro
 ```
 As we saw from the table, most of the patients diagnosed below the median age are alive while most of the patients diagnosed after the median age are dead.
 
+## Hypothesis Testing
+
+**(1) Does MYCN amplification have a significant effect on the survival of neuroblastoma patients?** 
+
+To test whether MYCN amplification has a significant effect on the survival of neuroblastoma patients we want to compare whether or not MYCN was amplified compared to whether or not that patient survived. We want to test to see whether or not the two variables are independent of one another which we can do with a chi-squared test. To run this test, we can create a table that contains the two variables of interest (MYCN amplification and their vital status). We can then run a chi squared test using the "chisq.test" function.
+
+The null hypothesis we are testing is that the two variables are independent of one another.
+
+```{r}
+amp.chitest <- table(NBOnly$MYCN, NBOnly$Vital_Status)
+amp.chitest
+chisq.test(amp.chitest)
+```
+
+We get a X-squared value of 9.5334 and the p-value is less than 0.05 which means that we reject the null hypothesis and can see that the two variables are in fact dependent on one another!
+
+**(2) Is the length of survival after diagnosis for patients that died significantly different when MYCN is amplified vs. non amplified (Is survival time less with MYCN amplification?)?** 
+
+The statistical test we want to use to determine if the length of survival after diagnosis for patients that died significantly different when MYCN is amplified vs. non amplified is an unpaired two way t-test. First we need to filter the data to remove any patient that has a unknown status for their MYCN amplification.
+
+```{r}
+dead <- NBOnly[-c(106, 189, 308, 330, 342, 371, 377), ]
+dead <- filter(dead, Vital_Status=="Dead")
+dead$MYCN <- factor(dead$MYCN)
+str(dead)
+levels(dead$MYCN)
+```
+
+Once we have filtered the data we can run two shapiro tests to determine if the data is normally distributed. 
+
+```{r}
+shapiro.test(dead$Overall_Survival_Time_in_Days[dead$MYCN=="Amplified"])
+shapiro.test(dead$Overall_Survival_Time_in_Days[dead$MYCN=="Not Amplified"])
+```
+
+It appears that the data is not normally distributed since both p-values are less than 0.05, but since the sample sizes are large enough we can still proceed with running our t-test. To do this we run the function "t.test" where we are comparing overall survival time to MYCN amplification status.
+
+The null hypothesis is that there is no difference in means between the amplified and not amplified groups overall survival time in days.
+
+```{r}
+t.test(Overall_Survival_Time_in_Days ~ MYCN, data = dead,
+        var.equal = TRUE)
+```
+
+The p-value is less than 0.05 which means that we can reject the null hypothesis and can see that there is a statistically significant difference in the mean length of survival time in days in the amplified and not amplified MYCN groups.
+
+**(4) For patients who died, does patient age at diagnosis correlate with the number of days they survived after diagnosis?**
+
+To compare how the patients age at diagnosis impacts their survival time we can run a linear model to see if the two variables are related to one another. A linear model is a useful function to run since it is able to run a t test comparing the two variables to one another. To use this function run the command, lm() where you want to see if one variable (in this case, overall survival time) is correlated to another variables (for us, age at diagnosis)
+
+```{r}
+age.death <- lm(Overall_Survival_Time_in_Days ~ Age_Diagnosis, data = dead)
+summary(age.death)
+```
+
+After running the model we get a p-value of less that 0.05 which means that there appears to be a correlation between the age of diagnosis and the survival time in days. We can also see how well the data fits the linear model by looking at the adjusted R-squared. You typically want this value to be as close to 1 as possible. Here the r-squared value is 0.061, which is very small meaning that a linear model is not necessarily a good model to use for this data.
 
 ## Grading
 
