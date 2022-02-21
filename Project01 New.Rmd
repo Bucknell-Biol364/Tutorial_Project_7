@@ -304,9 +304,24 @@ To compare how the patients age at diagnosis impacts their survival time we can 
 ```{r}
 age.death <- lm(Overall_Survival_Time_in_Days ~ Age_Diagnosis, data = dead)
 summary(age.death)
+plot(age.death)
 ```
 
 After running the model we get a p-value of less that 0.05 which means that there appears to be a correlation between the age of diagnosis and the survival time in days. We can also see how well the data fits the linear model by looking at the adjusted R-squared. You typically want this value to be as close to 1 as possible. Here the r-squared value is 0.061, which is very small meaning that a linear model is not necessarily a good model to use for this data.
+
+**(5) Do patients above and below the median age of diagnosis (18 mo) have different survival rates?** 
+
+probably same type of analysis as question 1-- could be good maybe if one is and one isn't so we could have varying examples but however it comes out is obviously good
+
+```{r}
+age.chitest <- NBOnly
+age.chitest %>%
+  mutate(under18 = (Age_Diagnosis < 550)) -> age.chitest
+age.chitest$under18 <- as.factor(age.chitest$under18)
+age.chitest <- table(age.chitest$under18, age.chitest$Vital_Status)
+
+chisq.test(age.chitest)
+```
 
 ## Grading
 
@@ -326,63 +341,6 @@ Tutorials from previous classes can be viewed at our public github site: https:/
 Each group should use an *Acknowledgements* section to document the participation of each member and the collaboration within and between groups.
 
 Additional credit will be awarded for providing assistance to other groups and for the development of a tutorial that goes beyond the minimal expectations listed above.
-
-## Sample Dataset
-
-One of the possible datasets to use for the tutorial can be found in the datasauRus package.
-
-```{r}
-datasaurus_dozen %>% 
-  group_by(dataset) %>% 
-  summarize(
-      mean_x    = mean(x),
-      mean_y    = mean(y),
-      std_dev_x = sd(x),
-      std_dev_y = sd(y),
-      corr_x_y  = cor(x, y)
-      )
-```
-
-Boxplots of either the x or the y value show that there is something strange going on.
-
-```{r}
-ggplot(datasaurus_dozen, aes(x = x, colour = dataset))+
-    geom_boxplot()+
-    theme_void()+
-    theme(legend.position = "none")+
-    facet_wrap(~dataset, ncol = 3)
-```
-
-```{r}
-ggplot(datasaurus_dozen, aes(x = y, colour = dataset))+
-    geom_boxplot()+
-    theme_void()+
-    theme(legend.position = "none")+
-    facet_wrap(~dataset, ncol = 3)
-```
-
-But you have to visualize all of the data with a scatter plot to really see the patterns.
-
-```{r fig.height=12, fig.width=9}
-  ggplot(datasaurus_dozen, aes(x = x, y = y, colour = dataset))+
-    geom_point()+
-    theme_void()+
-    theme(legend.position = "none")+
-    facet_wrap(~dataset, ncol = 3)
-```
-
-And did you notice the code in the {r} codechunk header that controlled the size of the output in the Rmd? Pretty neat trick!
-
-And here are two versions of the data that you could use in your data visualization tutorial. 
-To use them you would probably want to change the names of the datasets and also make x and y more meaningful. 
-Then save them as a csv or tsv to be imported later for your tutorial. 
-
-```{r}
-datasaurus_long <- datasaurus_dozen
-datasaurus_wide <- datasaurus_dozen_wide
-head(datasaurus_long)
-head(datasaurus_wide)
-```
 
 # Acknowledgements
 
