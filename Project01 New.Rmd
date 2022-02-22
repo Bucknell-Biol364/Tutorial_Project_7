@@ -259,19 +259,21 @@ To test whether MYCN amplification has a significant effect on the survival of n
 
 The null hypothesis we are testing is that the two variables are independent of one another.
 
-```{r}
-amp.chitest <- table(NBOnly$MYCN, NBOnly$Vital_Status)
+```{r chisq MYCN amplification hypothesis}
+amp.chitest <- NBOnly[-c(106, 189, 308, 330, 342, 371, 377),]
+amp.chitest$MYCN <- factor(amp.chitest$MYCN)
+amp.chitest <- table(amp.chitest$MYCN, amp.chitest$Vital_Status)
 amp.chitest
 chisq.test(amp.chitest)
 ```
 
-We get a X-squared value of 9.5334 and the p-value is less than 0.05 which means that we reject the null hypothesis and can see that the two variables are in fact dependent on one another!
+We get a X-squared value of 0.003018 and the p-value is less than 0.05 which means that we reject the null hypothesis and can see that the two variables are in fact dependent on one another!
 
 **(2) Is the length of survival after diagnosis for patients that died significantly different when MYCN is amplified vs. non amplified (Is survival time less with MYCN amplification?)?** 
 
 The statistical test we want to use to determine if the length of survival after diagnosis for patients that died significantly different when MYCN is amplified vs. non amplified is an unpaired two way t-test. First we need to filter the data to remove any patient that has a unknown status for their MYCN amplification.
 
-```{r}
+```{r filtering MYCN amplification hypothesis}
 dead <- NBOnly[-c(106, 189, 308, 330, 342, 371, 377), ]
 dead <- filter(dead, Vital_Status=="Dead")
 dead$MYCN <- factor(dead$MYCN)
@@ -281,7 +283,7 @@ levels(dead$MYCN)
 
 Once we have filtered the data we can run two shapiro tests to determine if the data is normally distributed. 
 
-```{r}
+```{r normality MYCN amplification hypothesis}
 shapiro.test(dead$Overall_Survival_Time_in_Days[dead$MYCN=="Amplified"])
 shapiro.test(dead$Overall_Survival_Time_in_Days[dead$MYCN=="Not Amplified"])
 ```
@@ -290,7 +292,7 @@ It appears that the data is not normally distributed since both p-values are les
 
 The null hypothesis is that there is no difference in means between the amplified and not amplified groups overall survival time in days.
 
-```{r}
+```{r ttest MYCN amplification hypothesis}
 t.test(Overall_Survival_Time_in_Days ~ MYCN, data = dead,
         var.equal = TRUE)
 ```
@@ -299,9 +301,9 @@ The p-value is less than 0.05 which means that we can reject the null hypothesis
 
 **(4) For patients who died, does patient age at diagnosis correlate with the number of days they survived after diagnosis?**
 
-To compare how the patients age at diagnosis impacts their survival time we can run a linear model to see if the two variables are related to one another. A linear model is a useful function to run since it is able to run a t test comparing the two variables to one another. To use this function run the command, lm() where you want to see if one variable (in this case, overall survival time) is correlated to another variables (for us, age at diagnosis)
+To compare how the patients age at diagnosis impacts their survival time we can run a linear model to see if the two variables are related to one another. A linear model is a useful function to run since it is able to run a t test comparing the two variables to one another. To use this function run the command, lm() where you want to see if one variable (in this case, overall survival time) is correlated to another variables (for us, age at diagnosis). To run a linear model we make a few assumptions including that the data is linear, the residuals are normal, the residuals have a constant variance, and each resiudal error is independent of one another. To test to see if those conditions are met we can plot our linear model and look at the graphs of the residuals and the Q-Q plot.
 
-```{r}
+```{r linear model survival hypothesis}
 age.death <- lm(Overall_Survival_Time_in_Days ~ Age_Diagnosis, data = dead)
 summary(age.death)
 plot(age.death)
@@ -309,11 +311,18 @@ plot(age.death)
 
 After running the model we get a p-value of less that 0.05 which means that there appears to be a correlation between the age of diagnosis and the survival time in days. We can also see how well the data fits the linear model by looking at the adjusted R-squared. You typically want this value to be as close to 1 as possible. Here the r-squared value is 0.061, which is very small meaning that a linear model is not necessarily a good model to use for this data.
 
+Interpreting the plots of the linear model:
+(1) Residuals v. fitted: We expect a fairly horizontal red line which indicates that the data experiences a linear relationship. Clearly, there is not a very straigt line which means that our data might not be best represented with a linear model.
+(2) Normal Q-Q plot: Here we expcet the data to follow the straight dashed line, which would indicate that the residuals are normal. Our Q-Q plot shows that the residuals are fairly skewed, again implying that a linear model might not be the best fit for our data.
+The other two graphs, while they can help inform more about the fit of the linear model are not crucial for our analysis. The main focus is on the first two graphs analyzing the residuals of the linear model.
+
 **(5) Do patients above and below the median age of diagnosis (18 mo) have different survival rates?** 
 
-probably same type of analysis as question 1-- could be good maybe if one is and one isn't so we could have varying examples but however it comes out is obviously good
+To test whether the median age of diagnosis (18 mo) has a significant effect on the survival of neuroblastoma patients we want to compare the age of diagnosis to whether or not that patient survived. We want to test to see whether or not the two variables are independent of one another which we can do with a chi-squared test. The only assumptions are that the data is a simple random sample of the population, we are using two categorical variables, and have a large enough sample. We meet all of these criteria so we can run the test. To run this test, we can create a table that contains the two variables of interest (median age of diagnosis and their vital status). We can then run a chi squared test using the "chisq.test" function.
 
-```{r}
+The null hypothesis we are testing is that the two variables (median age of diagnosis and their vital status) are independent of one another.
+
+```{r chisq age hypothesis}
 age.chitest <- NBOnly
 age.chitest %>%
   mutate(under18 = (Age_Diagnosis < 550)) -> age.chitest
@@ -322,6 +331,8 @@ age.chitest <- table(age.chitest$under18, age.chitest$Vital_Status)
 
 chisq.test(age.chitest)
 ```
+
+There is a p-vale of 2.888e-16, which is much less than 0.05, so we reject the null hypothesis and can see that the two variables are in fact dependent on one another.
 
 ## Grading
 
@@ -344,14 +355,9 @@ Additional credit will be awarded for providing assistance to other groups and f
 
 # Acknowledgements
 
-DatasauRus package and description below: Stephanie Locke https://github.com/jumpingrivers/datasauRus
+To help with the hypothesis testing section I used the following websites:
+https://data-flair.training/blogs/chi-square-test-in-r/
+http://www.sthda.com/english/wiki/unpaired-two-samples-t-test-in-r
+https://www.datasciencemadesimple.com/delete-or-drop-rows-in-r-with-conditions-2/#:~:text=Drop%20Rows%20by%20row%20number,by%20the%20'%2D'%20operator.
 
-The datasauRus package wraps the awesome Datasaurus Dozen dataset, which contains 13 sets of x-y data. Each sub-dataset has five statistics that are (almost) the same in each case. (These are the mean of x, mean of y, standard deviation of x, standard deviation of y, and Pearson correlation between x and y). However, scatter plots reveal that each sub-dataset looks very different. The dataset is intended to be used to teach students that it is important to plot their own datasets, rather than relying only on statistics.
-
-The Datasaurus was created by Alberto Cairo in this great [blog post](http://www.thefunctionalart.com/2016/08/download-datasaurus-never-trust-summary.html).
-
-He's been subsequently made even more famous in the paper [Same Stats, Different Graphs: Generating Datasets with Varied Appearance and Identical Statistics through Simulated Annealing](https://www.autodeskresearch.com/publications/samestats) by Justin Matejka and George Fitzmaurice.
-
-In the paper, Justin and George simulate a variety of datasets that the same summary statistics to the Datasaurus but have very different distributions. 
-
-This package also makes these datasets available for use as an advanced [Anscombe's Quartet](https://en.wikipedia.org/wiki/Anscombe%27s_quartet), available in R as `anscombe`.
+Olivia worked mostly on the hypothesis testing section, Jayne worked mainly on the data exploration section, and Sarah worked mostly on the data visualization section. All three of us went through and checked all of the code and annotations for errors once the project was complete.
