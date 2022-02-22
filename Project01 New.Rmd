@@ -56,10 +56,10 @@ nrow(NBOnly)
 
 Upon looking att he different variables included in the TARGET data, there are several variables that we have identified as being useful for looking at several select questions about neuroblastoma. Here are a few that we will look further at:
 
-(1) Does MYCN amplification have a significant effect on the survival of neuroblastoma patients? **2 categorical so look at frequency and such**
-(2) Is the length of survival after diagnosis for patients that died significantly different when MYCN is amplified vs. non amplified (Is survival time less with MYCN amplification?)? **classic box plot T-Test type deal**
-(3) For patients who died, does patient age at diagnosis correlate with the number of days they survived after diagnosis? **linear model, R^2, etc.**
-(3) Do patients above and below the median age of diagnosis (18 mo) have different survival rates? **probably same type of analysis as question 1-- could be good maybe if one if sign and one isnt so we could have varying examples but however it comes out is obviously good**
+(1) Does MYCN amplification have a significant effect on the survival of neuroblastoma patients?
+(2) Is the length of survival after diagnosis for patients that died significantly different when MYCN is amplified vs. non amplified (Is survival time less with MYCN amplification?)?
+(3) For patients who died, does patient age at diagnosis correlate with the number of days they survived after diagnosis? 
+(4) Do patients above and below the median age of diagnosis (18 mo) have different survival rates? 
 
 Given those initial questions, the only variables in the dataframe we require for our continued analysis are: Gender, MYCN, Age_Diagnosis, Vital_status, Diagnostic_category, and Overall_survival_Time_in_Days.  We will remove the rest of the columns that are no longer relevant, and will keep the Target_USI for easy reference by other scientists if necessary.  
 
@@ -102,13 +102,11 @@ table(nonamp$Vital_Status)
 ```
 Now that we have explored and filtered the data, we should visualize the data before testing our hypotheses.
 
-**(1) Does MYCN amplification have a significant effect on the survival of neuroblastoma patients? **
-
 To visualize how MYCN amplification relates to survival of neuroblastoma patients, we can make a bar plot to compare the two groups using ggplot().
 
 Within ggplot(), you first indicate the data frame you are pulling information from. It then takes the argument aes(x=,y=) where you add your x and y variables and geom_bar() to indicate you want your data to be displayed as a bar graph. We also want to add stat="identity" so the bar graph gives us counts of Alive vs Dead patients within each group. Within the aes(), we can also add "fill=Vital_Status" so each bar in our graph has a different color to indicate dead vs alive patients.
 
-We can also add ggtitle() to give our plot a title and xlab() and ylab() to label the x and y axes (although we don't need to relable the x-axis in this case). In addition, we have added the function theme_cowplot() that we can add to all of our plots to give them a consistent and clean theme.
+We can also add ggtitle() to give our plot a title and xlab() and ylab() to label the x and y axes (although we don't need to relabel the x-axis in this case). In addition, we have added the function theme_cowplot() that we can add to all of our plots to give them a consistent and clean theme.
 
 ```{r Question 1 Plot}
 ggplot(data=NBOnly, #Identify the data frame 
@@ -120,6 +118,21 @@ ggplot(data=NBOnly, #Identify the data frame
 ```
 
 As we saw from the table, the proportion of Dead to Alive patients is higher in patients with amplified MYCN. We also have a category of patients who were included in the study, but data on their MYCN is unknown. As you can see from the graph, the number of these patients is very small.
+
+To test whether MYCN amplification has a significant effect on the survival of neuroblastoma patients we want to compare whether or not MYCN was amplified compared to whether or not that patient survived. We want to test to see whether or not the two variables are independent of one another which we can do with a chi-squared test. To run this test, we can create a table that contains the two variables of interest (MYCN amplification and their vital status). We can then run a chi squared test using the "chisq.test" function.
+
+The null hypothesis we are testing is that the two variables are independent of one another.
+
+```{r chisq MYCN amplification hypothesis}
+amp.chitest <- NBOnly[-c(106, 189, 308, 330, 342, 371, 377),]
+amp.chitest$MYCN <- factor(amp.chitest$MYCN)
+amp.chitest <- table(amp.chitest$MYCN, amp.chitest$Vital_Status)
+amp.chitest
+chisq.test(amp.chitest)
+```
+
+We get a X-squared value of 0.003018 and the p-value is less than 0.05 which means that we reject the null hypothesis and can see that the two variables are in fact dependent on one another!
+
 
 **(2) Is the length of survival after diagnosis for patients that died significantly different when MYCN is amplified vs. non amplified (Is survival time less with MYCN amplification?)?**
 
@@ -163,6 +176,34 @@ survival_plot
 
 In addition to seeing that the Not Amplified median survival length is higher than Amplified median survival length, adding the data points allows us to see that we have more observations in the Not Amplified category than the Amplified category. We can also see that there are very few Unknown observations.
 
+The statistical test we want to use to determine if the length of survival after diagnosis for patients that died significantly different when MYCN is amplified vs. non amplified is an unpaired two way t-test. First we need to filter the data to remove any patient that has a unknown status for their MYCN amplification.
+
+```{r filtering MYCN amplification hypothesis}
+dead <- NBOnly[-c(106, 189, 308, 330, 342, 371, 377), ]
+dead <- filter(dead, Vital_Status=="Dead")
+dead$MYCN <- factor(dead$MYCN)
+str(dead)
+levels(dead$MYCN)
+```
+
+Once we have filtered the data we can run two shapiro tests to determine if the data is normally distributed. 
+
+```{r normality MYCN amplification hypothesis}
+shapiro.test(dead$Overall_Survival_Time_in_Days[dead$MYCN=="Amplified"])
+shapiro.test(dead$Overall_Survival_Time_in_Days[dead$MYCN=="Not Amplified"])
+```
+
+It appears that the data is not normally distributed since both p-values are less than 0.05, but since the sample sizes are large enough we can still proceed with running our t-test. To do this we run the function "t.test" where we are comparing overall survival time to MYCN amplification status.
+
+The null hypothesis is that there is no difference in means between the amplified and not amplified groups overall survival time in days.
+
+```{r ttest MYCN amplification hypothesis}
+t.test(Overall_Survival_Time_in_Days ~ MYCN, data = dead,
+        var.equal = TRUE)
+```
+
+The p-value is less than 0.05 which means that we can reject the null hypothesis and can see that there is a statistically significant difference in the mean length of survival time in days in the amplified and not amplified MYCN groups.
+
 **(3) For patients who died, does patient age at diagnosis correlate with the number of days they survived after diagnosis?**
 
 To get a quick sense of this question, we decided to look at the numerical summary for the distribution of days of survival after diagnosis for patients who died.  We saw that the mean was about 930 days.  So, we ordered the data from youngest patient diagnosed to oldest patient diagnoses.  From there, we looked at the youngest 25 patients diagnosed and the oldest 25 patients diagnosed and saw that for the younger patients, most of the survival times were below the 930 day average, and for the older patients, most had survival times above 930 days. This leads us to a further analysis as to if younger patients have significantly lower life expectancies after a neuroblastoma diagnosis.  
@@ -193,6 +234,21 @@ ggplot(data=NBOnly, aes(x = Age_Diagnosis, y = Overall_Survival_Time_in_Days)) +
 
 As we can see, survival length appears to decline as age at diagnosis increases, but the relationship does not appear strong. We can explore if a linear model fits the data later, when we do our hypothesis testing.
 
+
+To compare how the patients age at diagnosis impacts their survival time we can run a linear model to see if the two variables are related to one another. A linear model is a useful function to run since it is able to run a t test comparing the two variables to one another. To use this function run the command, lm() where you want to see if one variable (in this case, overall survival time) is correlated to another variables (for us, age at diagnosis). To run a linear model we make a few assumptions including that the data is linear, the residuals are normal, the residuals have a constant variance, and each resiudal error is independent of one another. To test to see if those conditions are met we can plot our linear model and look at the graphs of the residuals and the Q-Q plot.
+
+```{r linear model survival hypothesis}
+age.death <- lm(Overall_Survival_Time_in_Days ~ Age_Diagnosis, data = dead)
+summary(age.death)
+plot(age.death)
+```
+
+After running the model we get a p-value of less that 0.05 which means that there appears to be a correlation between the age of diagnosis and the survival time in days. We can also see how well the data fits the linear model by looking at the adjusted R-squared. You typically want this value to be as close to 1 as possible. Here the r-squared value is 0.061, which is very small meaning that a linear model is not necessarily a good model to use for this data.
+
+Interpreting the plots of the linear model:
+(1) Residuals v. fitted: We expect a fairly horizontal red line which indicates that the data experiences a linear relationship. Clearly, there is not a very straigt line which means that our data might not be best represented with a linear model.
+(2) Normal Q-Q plot: Here we expcet the data to follow the straight dashed line, which would indicate that the residuals are normal. Our Q-Q plot shows that the residuals are fairly skewed, again implying that a linear model might not be the best fit for our data.
+The other two graphs, while they can help inform more about the fit of the linear model are not crucial for our analysis. The main focus is on the first two graphs analyzing the residuals of the linear model.
 
 **(4) Do patients above and below the median age of diagnosis (18 mo) have different survival rates?**
 
@@ -235,75 +291,6 @@ plot_grid(a,b,nrow=2) #Indicate what plots to show and nrow= to show how many ro
 
 As we saw from the table, most of the patients diagnosed below the median age are alive while most of the patients diagnosed after the median age are dead.
 
-
-
-## Hypothesis Testing
-
-**(1) Does MYCN amplification have a significant effect on the survival of neuroblastoma patients?** 
-
-To test whether MYCN amplification has a significant effect on the survival of neuroblastoma patients we want to compare whether or not MYCN was amplified compared to whether or not that patient survived. We want to test to see whether or not the two variables are independent of one another which we can do with a chi-squared test. To run this test, we can create a table that contains the two variables of interest (MYCN amplification and their vital status). We can then run a chi squared test using the "chisq.test" function.
-
-The null hypothesis we are testing is that the two variables are independent of one another.
-
-```{r chisq MYCN amplification hypothesis}
-amp.chitest <- NBOnly[-c(106, 189, 308, 330, 342, 371, 377),]
-amp.chitest$MYCN <- factor(amp.chitest$MYCN)
-amp.chitest <- table(amp.chitest$MYCN, amp.chitest$Vital_Status)
-amp.chitest
-chisq.test(amp.chitest)
-```
-
-We get a X-squared value of 0.003018 and the p-value is less than 0.05 which means that we reject the null hypothesis and can see that the two variables are in fact dependent on one another!
-
-**(2) Is the length of survival after diagnosis for patients that died significantly different when MYCN is amplified vs. non amplified (Is survival time less with MYCN amplification?)?** 
-
-The statistical test we want to use to determine if the length of survival after diagnosis for patients that died significantly different when MYCN is amplified vs. non amplified is an unpaired two way t-test. First we need to filter the data to remove any patient that has a unknown status for their MYCN amplification.
-
-```{r filtering MYCN amplification hypothesis}
-dead <- NBOnly[-c(106, 189, 308, 330, 342, 371, 377), ]
-dead <- filter(dead, Vital_Status=="Dead")
-dead$MYCN <- factor(dead$MYCN)
-str(dead)
-levels(dead$MYCN)
-```
-
-Once we have filtered the data we can run two shapiro tests to determine if the data is normally distributed. 
-
-```{r normality MYCN amplification hypothesis}
-shapiro.test(dead$Overall_Survival_Time_in_Days[dead$MYCN=="Amplified"])
-shapiro.test(dead$Overall_Survival_Time_in_Days[dead$MYCN=="Not Amplified"])
-```
-
-It appears that the data is not normally distributed since both p-values are less than 0.05, but since the sample sizes are large enough we can still proceed with running our t-test. To do this we run the function "t.test" where we are comparing overall survival time to MYCN amplification status.
-
-The null hypothesis is that there is no difference in means between the amplified and not amplified groups overall survival time in days.
-
-```{r ttest MYCN amplification hypothesis}
-t.test(Overall_Survival_Time_in_Days ~ MYCN, data = dead,
-        var.equal = TRUE)
-```
-
-The p-value is less than 0.05 which means that we can reject the null hypothesis and can see that there is a statistically significant difference in the mean length of survival time in days in the amplified and not amplified MYCN groups.
-
-**(3) For patients who died, does patient age at diagnosis correlate with the number of days they survived after diagnosis?**
-
-To compare how the patients age at diagnosis impacts their survival time we can run a linear model to see if the two variables are related to one another. A linear model is a useful function to run since it is able to run a t test comparing the two variables to one another. To use this function run the command, lm() where you want to see if one variable (in this case, overall survival time) is correlated to another variables (for us, age at diagnosis). To run a linear model we make a few assumptions including that the data is linear, the residuals are normal, the residuals have a constant variance, and each resiudal error is independent of one another. To test to see if those conditions are met we can plot our linear model and look at the graphs of the residuals and the Q-Q plot.
-
-```{r linear model survival hypothesis}
-age.death <- lm(Overall_Survival_Time_in_Days ~ Age_Diagnosis, data = dead)
-summary(age.death)
-plot(age.death)
-```
-
-After running the model we get a p-value of less that 0.05 which means that there appears to be a correlation between the age of diagnosis and the survival time in days. We can also see how well the data fits the linear model by looking at the adjusted R-squared. You typically want this value to be as close to 1 as possible. Here the r-squared value is 0.061, which is very small meaning that a linear model is not necessarily a good model to use for this data.
-
-Interpreting the plots of the linear model:
-(1) Residuals v. fitted: We expect a fairly horizontal red line which indicates that the data experiences a linear relationship. Clearly, there is not a very straigt line which means that our data might not be best represented with a linear model.
-(2) Normal Q-Q plot: Here we expcet the data to follow the straight dashed line, which would indicate that the residuals are normal. Our Q-Q plot shows that the residuals are fairly skewed, again implying that a linear model might not be the best fit for our data.
-The other two graphs, while they can help inform more about the fit of the linear model are not crucial for our analysis. The main focus is on the first two graphs analyzing the residuals of the linear model.
-
-**(4) Do patients above and below the median age of diagnosis (18 mo) have different survival rates?** 
-
 To test whether the median age of diagnosis (18 mo) has a significant effect on the survival of neuroblastoma patients we want to compare the age of diagnosis to whether or not that patient survived. We want to test to see whether or not the two variables are independent of one another which we can do with a chi-squared test. The only assumptions are that the data is a simple random sample of the population, we are using two categorical variables, and have a large enough sample. We meet all of these criteria so we can run the test. To run this test, we can create a table that contains the two variables of interest (median age of diagnosis and their vital status). We can then run a chi squared test using the "chisq.test" function.
 
 The null hypothesis we are testing is that the two variables (median age of diagnosis and their vital status) are independent of one another.
@@ -320,24 +307,6 @@ chisq.test(age.chitest)
 
 There is a p-vale of 2.888e-16, which is much less than 0.05, so we reject the null hypothesis and can see that the two variables are in fact dependent on one another.
 
-## Grading
-
-Each student will be expected to complete the following tasks to earn 85% of the points available for this assignment (21/25).
-
-- Identify and obtain suitable dataset
-- Use a Github repository and version control to collaborate on the project
-- Spend 4-6 hours preparing, coding, and testing tutorial
-  + Data exploration
-  + Data visualization
-  + Hypothesis testing
-- Present tutorial in class
-- Provide public archive suitable for sharing to students/faculty
-
-Tutorials from previous classes can be viewed at our public github site: https://github.com/Bucknell-Biol364
-
-Each group should use an *Acknowledgements* section to document the participation of each member and the collaboration within and between groups.
-
-Additional credit will be awarded for providing assistance to other groups and for the development of a tutorial that goes beyond the minimal expectations listed above.
 
 # Acknowledgements
 
