@@ -132,6 +132,7 @@ Here we filtered the dataframe to only include patients that died.  In this ques
 
 ```{r Question 2 -- Exploration}
 dead<- filter(NBOnly, Vital_Status=="Dead")
+dead <- as.data.frame(dead)
 head(dead)
 DeadOrder<- arrange(dead, Overall_Survival_Time_in_Days)
 head(DeadOrder, 25)
@@ -141,7 +142,7 @@ To visualize the relationship between MYCN amplification (a categorical variable
 First we can create a basic box plot.
 
 ```{r Question 2 Basic Plot -- Visualization}
-basic_plot <- ggplot(NBOnly) + #Tell ggplot what data frame you are working in
+basic_plot <- ggplot(dead) + #Tell ggplot what data frame you are working in
   aes(x =MYCN , y=Overall_Survival_Time_in_Days) + #Add x and y variables
   geom_boxplot() #Let ggplot know you want to create a boxplot
 basic_plot
@@ -155,7 +156,7 @@ To make our plot even better, we can add all of our data points to the plot. It 
 We also added axis names and titles again.
 
 ```{r Question 2 Advanced Boxplot-- Visualization}
-survival_plot <- ggplot(NBOnly) +
+survival_plot <- ggplot(dead) +
   aes(x =MYCN , y=Overall_Survival_Time_in_Days) +
   geom_boxplot() +
   geom_jitter(width=.2, alpha=0.5) + #Adding our data points
@@ -216,7 +217,7 @@ We can also use the function scale_x_continuous(breaks = seq.into()) to define t
 The function geom_smooth(method='lm',se=FALSE) adds a linear regression to our plot.
 
 ```{r Question 3 -- Visualization}
-ggplot(data=NBOnly, aes(x = Age_Diagnosis, y = Overall_Survival_Time_in_Days)) +
+ggplot(data=dead, aes(x = Age_Diagnosis, y = Overall_Survival_Time_in_Days)) +
   geom_point(position = "jitter",size=0.05) + #Scatterplot
   scale_x_continuous(breaks = seq.int(0, 8000, 1000)) + #x-axis length
   geom_smooth(method='lm',se=FALSE) + #linear regression
