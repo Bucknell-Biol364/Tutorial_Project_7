@@ -310,9 +310,16 @@ There is a p-vale of 2.888e-16, which is much less than 0.05, so we reject the n
 
 # Acknowledgements
 
+The TARGET dataset was produced by the lab of Dr. John Maris at The Children's Hospital of Philadelphia (Jayne worked in this lab over the summer and was given permission to use the dataset for the project).
+
+Backgorund information on neuroblastoma:
+Matthay, K., Maris, J., Schleiermacher, G. et al. Neuroblastoma. Nat Rev Dis Primers 2, 16078 (2016). https://doi.org/10.1038/nrdp.2016.78
+
+
+
 To help with the hypothesis testing section I used the following websites:
 https://data-flair.training/blogs/chi-square-test-in-r/
 http://www.sthda.com/english/wiki/unpaired-two-samples-t-test-in-r
 https://www.datasciencemadesimple.com/delete-or-drop-rows-in-r-with-conditions-2/#:~:text=Drop%20Rows%20by%20row%20number,by%20the%20'%2D'%20operator.
 
-Olivia worked mostly on the hypothesis testing section, Jayne worked mainly on the data exploration section, and Sarah worked mostly on the data visualization section. All three of us went through and checked all of the code and annotations for errors once the project was complete.
+Olivia worked mostly on the hypothesis testing section, Jayne worked mainly on the data exploration section and ReadMe portion, and Sarah worked mostly on the data visualization section. All code chunks are labeled --Explorations (Jayne), --Visualization (Sarah), or --Hypothesis (Olivia). All three of us went through and checked all of the code and annotations for errors once the project was complete.
