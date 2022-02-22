@@ -69,8 +69,6 @@ NBOnly$MYCN <- as.factor(NBOnly$MYCN)
 str(NBOnly)
 ```
 
-##Exploring, Visualizing, and Testing Questions
-
 **(1) Does MYCN amplification have a significant effect on the survival of neuroblastoma patients? **
 
 Considering question 1, we would like to see information about the vital status of patients with MYCN amplification and patients without MYCN amplification separately.  Like was done before, we can use the filter() function to create subsets of the neuroblastoma dataframe to only include one genetic status or the other. We then validated that these codes were carried out correctly by scanning the head of each subset to ensure the MYCN variable only includes the specified MYCN status response.   
