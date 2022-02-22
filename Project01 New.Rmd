@@ -312,10 +312,8 @@ There is a p-vale of 2.888e-16, which is much less than 0.05, so we reject the n
 
 The TARGET dataset was produced by the lab of Dr. John Maris at The Children's Hospital of Philadelphia (Jayne worked in this lab over the summer and was given permission to use the dataset for the project).
 
-Backgorund information on neuroblastoma:
+Background information on neuroblastoma:
 Matthay, K., Maris, J., Schleiermacher, G. et al. Neuroblastoma. Nat Rev Dis Primers 2, 16078 (2016). https://doi.org/10.1038/nrdp.2016.78
-
-
 
 To help with the hypothesis testing section I used the following websites:
 https://data-flair.training/blogs/chi-square-test-in-r/
