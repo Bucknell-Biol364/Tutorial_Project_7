@@ -102,10 +102,10 @@ Adding a "+" between each function links them together to make a graph that foll
 
 ```{r Question 1 -- Visualization}
 ggplot(data=NBOnly, #Identify the data frame 
-       aes(x=MYCN,y = Vital_Status, fill=Vital_Status)) + #Identify variables and fill=Vital_Status 
-  geom_bar(stat = "identity") + #Indicating we want the bar graph to show the vital status counts
+       aes(x=MYCN, fill=Vital_Status)) + #Identify variables and fill=Vital_Status 
+  geom_bar() + #Indicating we want the bar graph to show the vital status counts
   ggtitle("The effect of amplification on survival") + #Title
-  ylab("Vital Status") + #Y-axis names 
+  ylab("Number of Patients") + #Y-axis names 
   theme_cowplot()
 ```
 
