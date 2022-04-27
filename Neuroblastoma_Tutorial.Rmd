@@ -10,6 +10,8 @@ date: 9 Feb 2022
 
 Welcome to this R tutorial for upper level biology students interested in cancer biology! This tutorial is designed for someone who has had some experience with R, but not much.
 
+While all of the code chunks are here in this tutorial, if you want to add more simply click on the "+C" button at the top and select "R". If you want to make comments within a code chunk (in addition to comments like this, in the white space), you can use a "#" before writing a few words. For example: function() #Comment
+
 First thing's first, let's load in the necessary packages to run the code we are going to need for this tutorial. While R has many built in functions, sometimes we need to add in packages to run more advanced code. If you need to add more packages during a project, it is easiest to add it into the code chunk below in the same format.
 
 ```{r Load Libraries, include=FALSE}
@@ -102,10 +104,10 @@ Adding a "+" between each function links them together to make a graph that foll
 
 ```{r Question 1 -- Visualization}
 ggplot(data=NBOnly, #Identify the data frame 
-       aes(x=MYCN, fill=Vital_Status)) + #Identify variables and fill=Vital_Status 
-  geom_bar() + #Indicating we want the bar graph to show the vital status counts
+       aes(x=MYCN,y = Vital_Status, fill=Vital_Status)) + #Identify variables and fill=Vital_Status 
+  geom_bar(stat = "identity") + #Indicating we want the bar graph to show the vital status counts
   ggtitle("The effect of amplification on survival") + #Title
-  ylab("Number of Patients") + #Y-axis names 
+  ylab("Vital Status") + #Y-axis names 
   theme_cowplot()
 ```
 
